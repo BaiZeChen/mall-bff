@@ -1,0 +1,4 @@
+app:
+  name: "mall-bff"   #应用名称
+  port: "80"         # 服务器端口号
+  serPort : "6280"
