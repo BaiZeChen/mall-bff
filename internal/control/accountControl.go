@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/status"
 	"mall-bff/pkg"
 	"net/http"
+	"time"
 )
 
 type Account struct {
@@ -35,17 +36,23 @@ func (a *Account) Login(ctx *gin.Context) {
 		return
 	}
 
-	grpcClient := &pkg.GrpcConn{}
-	err = grpcClient.NewConn("")
+	// 链接超时2S
+	connCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	conn, err := pkg.NewGrpcConn(connCtx, "")
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": 0,
-			"msg":  err.Error(),
+			"msg":  fmt.Sprintf("请求服务端失败，原因：%s", err.Error()),
 		})
 		return
 	}
-	defer grpcClient.Conn.Close()
-	resp, err := grpcClient.Client.Login(context.Background(), &account.ReqAddAccount{
+	defer conn.Close()
+	client := account.NewAccountServiceClient(conn)
+
+	grpcCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	resp, err := client.Login(grpcCtx, &account.ReqAddAccount{
 		Name:     a.Name,
 		Password: a.Password,
 	})
@@ -92,17 +99,23 @@ func (a *Account) Add(ctx *gin.Context) {
 		return
 	}
 
-	grpcClient := &pkg.GrpcConn{}
-	err = grpcClient.NewConn(token.(string))
+	// 链接超时2S
+	connCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	conn, err := pkg.NewGrpcConn(connCtx, token.(string))
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": 0,
-			"msg":  err.Error(),
+			"msg":  fmt.Sprintf("请求服务端失败，原因：%s", err.Error()),
 		})
 		return
 	}
-	defer grpcClient.Conn.Close()
-	_, err = grpcClient.Client.CreateAccount(context.Background(), &account.ReqAddAccount{
+	defer conn.Close()
+	client := account.NewAccountServiceClient(conn)
+
+	grpcCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	_, err = client.CreateAccount(grpcCtx, &account.ReqAddAccount{
 		Name:     a.Name,
 		Password: a.Password,
 	})
@@ -146,17 +159,23 @@ func (a *Account) UpdateName(ctx *gin.Context) {
 		return
 	}
 
-	grpcClient := &pkg.GrpcConn{}
-	err = grpcClient.NewConn(token.(string))
+	// 链接超时2S
+	connCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	conn, err := pkg.NewGrpcConn(connCtx, token.(string))
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": 0,
-			"msg":  err.Error(),
+			"msg":  fmt.Sprintf("请求服务端失败，原因：%s", err.Error()),
 		})
 		return
 	}
-	defer grpcClient.Conn.Close()
-	_, err = grpcClient.Client.UpdateAccountName(context.Background(), &account.ReqUpdateAccountName{
+	defer conn.Close()
+	client := account.NewAccountServiceClient(conn)
+
+	grpcCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	_, err = client.UpdateAccountName(grpcCtx, &account.ReqUpdateAccountName{
 		Id:   uint32(a.ID),
 		Name: a.Name,
 	})
@@ -201,17 +220,23 @@ func (a *Account) UpdatePassword(ctx *gin.Context) {
 		return
 	}
 
-	grpcClient := &pkg.GrpcConn{}
-	err = grpcClient.NewConn(token.(string))
+	// 链接超时2S
+	connCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	conn, err := pkg.NewGrpcConn(connCtx, token.(string))
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": 0,
-			"msg":  err.Error(),
+			"msg":  fmt.Sprintf("请求服务端失败，原因：%s", err.Error()),
 		})
 		return
 	}
-	defer grpcClient.Conn.Close()
-	_, err = grpcClient.Client.UpdateAccountPassword(context.Background(), &account.ReqUpdateAccountPassword{
+	defer conn.Close()
+	client := account.NewAccountServiceClient(conn)
+
+	grpcCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	_, err = client.UpdateAccountPassword(grpcCtx, &account.ReqUpdateAccountPassword{
 		Id:       uint32(a.ID),
 		Password: a.Password,
 	})
@@ -249,18 +274,23 @@ func (a *Account) Delete(ctx *gin.Context) {
 	}
 	token, _ := ctx.Get("token")
 
-	grpcClient := &pkg.GrpcConn{}
-	err = grpcClient.NewConn(token.(string))
+	// 链接超时2S
+	connCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	conn, err := pkg.NewGrpcConn(connCtx, token.(string))
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": 0,
-			"msg":  err.Error(),
+			"msg":  fmt.Sprintf("请求服务端失败，原因：%s", err.Error()),
 		})
 		return
 	}
-	defer grpcClient.Conn.Close()
+	defer conn.Close()
+	client := account.NewAccountServiceClient(conn)
 
-	_, err = grpcClient.Client.DeleteAccount(context.Background(), &account.ReqDelAccount{Id: uint32(a.ID)})
+	grpcCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	_, err = client.DeleteAccount(grpcCtx, &account.ReqDelAccount{Id: uint32(a.ID)})
 	if err != nil {
 		fromError, _ := status.FromError(err)
 		ctx.JSON(http.StatusOK, gin.H{
@@ -294,18 +324,23 @@ func (a *Account) List(ctx *gin.Context) {
 	}
 	token, _ := ctx.Get("token")
 
-	grpcClient := &pkg.GrpcConn{}
-	err = grpcClient.NewConn(token.(string))
+	// 链接超时2S
+	connCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	conn, err := pkg.NewGrpcConn(connCtx, token.(string))
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": 0,
-			"msg":  err.Error(),
+			"msg":  fmt.Sprintf("请求服务端失败，原因：%s", err.Error()),
 		})
 		return
 	}
-	defer grpcClient.Conn.Close()
+	defer conn.Close()
+	client := account.NewAccountServiceClient(conn)
 
-	list, err := grpcClient.Client.AccountList(context.Background(), &account.ReqAccountList{
+	grpcCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	list, err := client.AccountList(grpcCtx, &account.ReqAccountList{
 		Name:   a.Name,
 		Offset: uint32(a.Offset),
 		Limit:  uint32(a.Limit),
