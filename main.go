@@ -7,6 +7,7 @@ import (
 	"mall-bff/configs"
 	"mall-bff/internal/control"
 	"mall-bff/internal/middleware"
+	"mall-bff/pkg"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,6 +16,8 @@ import (
 )
 
 func main() {
+	pkg.InitTracing()
+
 	engine := gin.Default()
 	engine.Use(middleware.Auth())
 
@@ -46,6 +49,10 @@ func Shutdown(ser *http.Server) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := ser.Shutdown(ctx); err != nil {
+			panic(err)
+		}
+		err := pkg.TracingCloser.Close()
+		if err != nil {
 			panic(err)
 		}
 		fmt.Println("服务已关闭！")

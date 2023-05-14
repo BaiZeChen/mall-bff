@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"github.com/BaiZeChen/mall-api/proto/account"
 	"github.com/gin-gonic/gin"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 	"google.golang.org/grpc/status"
 	"mall-bff/pkg"
 	"net/http"
@@ -37,10 +40,17 @@ func (a *Account) Login(ctx *gin.Context) {
 	}
 
 	// 链接超时2S
+	span, SpanCtx := opentracing.StartSpanFromContext(ctx.Request.Context(), "login")
+	defer span.Finish()
+	ext.SpanKindRPCClient.Set(span)
+	span.LogFields(log.String("name", a.Name), log.String("password", a.Password))
+
 	connCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	conn, err := pkg.NewGrpcConn(connCtx, "")
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(log.String("err", err.Error()))
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": 0,
 			"msg":  fmt.Sprintf("请求服务端失败，原因：%s", err.Error()),
@@ -50,13 +60,15 @@ func (a *Account) Login(ctx *gin.Context) {
 	defer conn.Close()
 	client := account.NewAccountServiceClient(conn)
 
-	grpcCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	grpcCtx, cancel := context.WithTimeout(SpanCtx, 3*time.Second)
 	defer cancel()
 	resp, err := client.Login(grpcCtx, &account.ReqAddAccount{
 		Name:     a.Name,
 		Password: a.Password,
 	})
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(log.String("err", err.Error()))
 		fromError, _ := status.FromError(err)
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": 0,
